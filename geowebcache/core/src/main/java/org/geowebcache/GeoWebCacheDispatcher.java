@@ -661,6 +661,7 @@ public class GeoWebCacheDispatcher extends AbstractController {
 
         response.setStatus(httpCode);
         response.setContentType(contentType);
+        response.setCharacterEncoding("UTF-8");
 
         response.setContentLength((int) contentLength);
         if (resource != null) {

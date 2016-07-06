@@ -103,9 +103,18 @@
 	-->
 	<bean id="simpleUserDetailsService" class="org.acegisecurity.userdetails.memory.InMemoryDaoImpl">
 		<property name="userProperties">
-			<bean
-				class="org.springframework.beans.factory.config.PropertiesFactoryBean">
-				<property name="location" value="/WEB-INF/users.properties" />
+			<bean class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+                            <!--<property name="location" value="/WEB-INF/users.properties" />-->
+                            <property name="location">
+                                    <bean class="org.springframework.core.io.FileSystemResource">
+                                        <constructor-arg>
+                                            <bean class="org.springframework.jndi.JndiObjectFactoryBean">
+                                                <property name="jndiName" value="java:comp/env/tapis.geowebcache.users.properties" />
+                                                <property name="resourceRef" value="false" />
+                                            </bean>
+                                        </constructor-arg>
+                                    </bean>
+                            </property>
 			</bean>
 		</property>
 	</bean>

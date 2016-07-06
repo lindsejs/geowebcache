@@ -1,21 +1,16 @@
 /**
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU Lesser General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ * You should have received a copy of the GNU Lesser General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
+ *
  * @author Arne Kepp, OpenGeo, Copyright 2009
- * 
+ *
  */
-package org.geowebcache.service.wmts;
+package org.geowebcache.service.tapis.wmts;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -49,42 +44,43 @@ import org.geowebcache.util.ServletUtils;
 import org.geowebcache.util.URLMangler;
 
 public class WMTSGetCapabilities {
-    
-    private static Log log = LogFactory.getLog(WMTSGetCapabilities.class);
-    
-    private TileLayerDispatcher tld;
-    
-    private GridSetBroker gsb;
-    
-    private String baseUrl;
-    
+
+    private static final Log log = LogFactory.getLog(WMTSGetCapabilities.class);
+
+    private final TileLayerDispatcher tld;
+
+    private final GridSetBroker gsb;
+
+    private final String baseUrl;
+
     protected WMTSGetCapabilities(TileLayerDispatcher tld, GridSetBroker gsb, HttpServletRequest servReq, String baseUrl,
-            String contextPath, URLMangler urlMangler) {
+                    String contextPath, URLMangler urlMangler) {
         this.tld = tld;
         this.gsb = gsb;
 
         String forcedBaseUrl = ServletUtils.stringFromMap(servReq.getParameterMap(), servReq.getCharacterEncoding(), "base_url");
 
-        if(forcedBaseUrl!=null) {
-            this.baseUrl = forcedBaseUrl;
+        if (forcedBaseUrl != null) {
+            // This should prevent anyone from passing in anything nasty
+            this.baseUrl = encodeXmlChars(forcedBaseUrl);
         } else {
-            this.baseUrl = urlMangler.buildURL(baseUrl, contextPath, WMTSService.SERVICE_PATH);
+            String serviceUrl = (String) servReq.getAttribute("normalizeduri");
+            this.baseUrl = urlMangler.buildURL(baseUrl, contextPath, serviceUrl);
         }
-        
     }
-    
-    protected void writeResponse(HttpServletResponse response, RuntimeStats stats) {
-        final Charset encoding = StandardCharsets.UTF_8;
-        byte[] data = generateGetCapabilities(encoding).getBytes(encoding);
-        
+
+    protected void writeResponse(HttpServletRequest request, HttpServletResponse response, RuntimeStats stats) {
+		final Charset encoding = StandardCharsets.UTF_8;
+        byte[] data = generateGetCapabilities(request, encoding).getBytes(encoding);
+
         response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType("application/vnd.ogc.wms_xml");
+        response.setContentType("text/xml"); // application/vnd.ogc.wms_xml
         response.setCharacterEncoding(encoding.name());
         response.setContentLength(data.length);
         response.setHeader("content-disposition", "inline;filename=wmts-getcapabilities.xml");
-        
+
         stats.log(data.length, CacheResult.OTHER);
-        
+
         try {
             OutputStream os = response.getOutputStream();
             os.write(data);
@@ -94,7 +90,8 @@ public class WMTSGetCapabilities {
         }
     }
 
-    private String generateGetCapabilities(Charset encoding) {
+    private String generateGetCapabilities(HttpServletRequest request, Charset encoding) {
+        String workspace = (String) request.getAttribute("workspace");
         StringBuilder str = new StringBuilder();
         XMLBuilder xml = new XMLBuilder(str);
         
@@ -114,10 +111,10 @@ public class WMTSGetCapabilities {
             serviceIdentification(xml);
             serviceProvider(xml);
             operationsMetadata(xml);
-            contents(xml);
-            xml.indentElement("ServiceMetadataURL")
-                .attribute("xlink:href", baseUrl+"?REQUEST=getcapabilities&VERSION=1.0.0")
-                .endElement();
+        	contents(xml, workspace);
+	       	xml.indentElement("ServiceMetadataURL")
+	                .attribute("xlink:href", baseUrl+"?REQUEST=getcapabilities&VERSION=1.0.0")
+	                .endElement();
             
             xml.endElement("Capabilities");
             
@@ -158,7 +155,7 @@ public class WMTSGetCapabilities {
 
         xml.endElement("ows:ServiceIdentification");
     }
-    
+
     private void serviceProvider(XMLBuilder xml) throws IOException {
         ServiceInformation servInfo = tld.getServiceInformation();
         ServiceProvider servProv = null;
@@ -210,7 +207,7 @@ public class WMTSGetCapabilities {
             
         xml.endElement("ows:ServiceProvider"); 
     }
-    
+
     private void operationsMetadata(XMLBuilder xml) throws IOException {
         xml.indentElement("ows:OperationsMetadata");
         operation(xml, "GetCapabilities", baseUrl);
@@ -218,8 +215,8 @@ public class WMTSGetCapabilities {
         operation(xml, "GetFeatureInfo", baseUrl);
         xml.endElement("ows:OperationsMetadata");
     }
-        
-     private void operation(XMLBuilder xml, String operationName, String baseUrl) throws IOException {
+
+    private void operation(XMLBuilder xml, String operationName, String baseUrl) throws IOException {
         xml.indentElement("ows:Operation").attribute("name", operationName);
         xml.indentElement("ows:DCP");
         xml.indentElement("ows:HTTP");
@@ -234,37 +231,58 @@ public class WMTSGetCapabilities {
         xml.endElement();
         xml.endElement("ows:Operation");
      }
-     
-     private void contents(XMLBuilder xml) throws IOException {
-         xml.indentElement("Contents");
-         Iterable<TileLayer> iter = tld.getLayerList();
+
+    private void contents(XMLBuilder xml, String workspace) throws IOException {
+                
+        xml.indentElement("Contents");
+        Iterable<TileLayer> iter = tld.getLayerList();
         for (TileLayer layer : iter) {
+            if(workspace != null && !"".equalsIgnoreCase(workspace)) {
+                if(layer.getId().contains(":")) {
+                    String layerWorkspace = layer.getId().split(":")[0].trim();
+                    if(!workspace.equalsIgnoreCase(layerWorkspace)) {
+                        continue;
+                    }
+                } else {
+                    if(!(layer.getId().matches("(o|p|g)_\\d+") && layer.getId().equalsIgnoreCase(workspace))) {
+                        continue;
+                    }
+                }
+            }
+            
             if (!layer.isEnabled() || !layer.isAdvertised()) {
                 continue;
             }
-            layer(xml, layer, baseUrl);
+            layer(xml, layer, workspace, baseUrl);
         }
-         
+
         for (GridSet gset : gsb.getGridSets()) {
             tileMatrixSet(xml, gset);
         }
-         
-         xml.endElement("Contents");
-     }
-     
-     private void layer(XMLBuilder xml, TileLayer layer, String baseurl) throws IOException {
+
+        xml.endElement("Contents");
+    }
+
+    private void layer(XMLBuilder xml, TileLayer layer, String workspace, String baseurl) throws IOException {
         xml.indentElement("Layer");
         LayerMetaInformation layerMeta = layer.getMetaInformation();
 
+        String layerName = layer.getName();
+        if(workspace != null && !"".equalsIgnoreCase(workspace)) {
+            if(layerName.contains(":")) {
+                layerName = layer.getName().substring(workspace.length() + 1, layer.getName().length());
+            }
+        }
+        
         if (layerMeta == null) {
-            appendTag(xml, "ows:Title", layer.getName(), null);
+            appendTag(xml, "ows:Title", layerName, null);
         } else {
             appendTag(xml, "ows:Title", layerMeta.getTitle(), null);
             appendTag(xml, "ows:Abstract", layerMeta.getDescription(), null);
         }
 
         layerWGS84BoundingBox(xml, layer);
-        appendTag(xml, "ows:Identifier", layer.getName(), null);
+        appendTag(xml, "ows:Identifier", layerName, null);
         
         // We need the filters for styles and dimensions
         List<ParameterFilter> filters = layer.getParameterFilters();
@@ -491,4 +509,12 @@ public class WMTSGetCapabilities {
          }
          xml.simpleElement(tagName, value, true);
      }
+
+    private String encodeXmlChars(String input) {
+        return input
+                .replaceAll("&", "&amp;")
+                .replaceAll("%", "&#37;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;");
+    }
 }

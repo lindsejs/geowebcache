@@ -463,45 +463,39 @@ public class XMLConfiguration implements Configuration, InitializingBean {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
         }
 
+        File backupFile = null;
         try {
-            backUpConfig(xmlFile);
+            backupFile = backUpConfig(xmlFile);
         } catch (Exception e) {
             log.warn("Error creating back up of configuration file " + configFileName, e);
         }
         persistToFile(xmlFile);
+        
+        if(backupFile != null) {
+            deleteBackupConfig(backupFile);
+        }
     }
 
-    private void backUpConfig(final File xmlFile) throws IOException {
+    private synchronized File backUpConfig(final File xmlFile) throws IOException {
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd'T'HHmmss").format(new Date());
         String backUpFileName = "geowebcache_" + timeStamp + ".bak";
         File parentFile = xmlFile.getParentFile();
 
         log.debug("Backing up config file " + xmlFile.getName() + " to " + backUpFileName);
-
-        String[] previousBackUps = parentFile.list(new FilenameFilter() {
-            public boolean accept(File dir, String name) {
-                if (configFileName.equals(name)) {
-                    return false;
-                }
-                if (name.startsWith(configFileName) && name.endsWith(".bak")) {
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        final int maxBackups = 10;
-        if (previousBackUps.length > maxBackups) {
-            Arrays.sort(previousBackUps);
-            String oldest = previousBackUps[0];
-            log.debug("Deleting oldest config backup " + oldest + " to keep a maximum of "
-                    + maxBackups + " backups.");
-            new File(parentFile, oldest).delete();
-        }
-
         File backUpFile = new File(parentFile, backUpFileName);
         FileUtils.copyFile(xmlFile, backUpFile);
         log.debug("Config backup done");
+        
+        return backUpFile;
+    }
+    
+    private synchronized void deleteBackupConfig(File backupFile) {
+        log.debug("Delete config file " + backupFile.getName());
+        FileUtils.deleteQuietly(backupFile);
+        
+        if(backupFile.exists()) {
+            log.error("Cannot delete backup file config: " + backupFile.getName());
+        }
     }
 
     public XStream getConfiguredXStream(XStream xs) {

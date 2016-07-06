@@ -79,4 +79,8 @@
     <servlet-name>geowebcache</servlet-name>
     <url-pattern>/home</url-pattern>
   </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>geowebcache</servlet-name>
+    <url-pattern>/tapis/*</url-pattern>
+  </servlet-mapping>
 </web-app>

@@ -160,6 +160,12 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- TAPIS Dependency -->
+    <dependency>
+      <groupId>org.geowebcache</groupId>
+      <artifactId>gwc-tapis</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
   <build>

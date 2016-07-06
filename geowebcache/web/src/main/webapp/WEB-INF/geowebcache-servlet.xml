@@ -19,6 +19,7 @@
   <import resource="geowebcache-diskquota-context.xml"/>
   <import resource="geowebcache-arcgiscache-context.xml"/>
   <import resource="geowebcache-distributed.xml"/>
+  <import resource="geowebcache-tapisservice-context.xml"/>
     
   <bean id="gwcUrlMapping" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
     <property name="alwaysUseFullPath" value="true"/>
@@ -26,8 +27,9 @@
       <props> 
         <prop key="/service/**">geowebcacheDispatcher</prop>
         <prop key="/demo/**">geowebcacheDispatcher</prop>
-	    <prop key="/proxy/**">gwcProxyDispatcher</prop>
-	    <prop key="/home">geowebcacheDispatcher</prop>
+        <prop key="/proxy/**">gwcProxyDispatcher</prop>
+        <prop key="/tapis/**">gwcTapisDispatcher</prop>
+        <prop key="/home">geowebcacheDispatcher</prop>
       </props>
     </property>
   </bean>

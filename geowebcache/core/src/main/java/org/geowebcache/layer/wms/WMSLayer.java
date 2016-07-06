@@ -830,7 +830,12 @@ public class WMSLayer extends AbstractTileLayer implements ProxyLayer {
             is = getMethod.getResponseBodyAsStream();
 
             HttpServletResponse response = tile.servletResp;
-            response.setCharacterEncoding(getMethod.getResponseCharSet());
+            String charEnc = getMethod.getResponseCharSet();
+            log.debug("character encoding = " + charEnc);
+            if(charEnc == null || "ISO-8859-1".equalsIgnoreCase(charEnc)) {
+                charEnc = "UTF-8";
+            }
+            response.setCharacterEncoding(charEnc);
             response.setContentType(getMethod.getResponseHeader("Content-Type").getValue());
             
             int read = 0;

@@ -74,9 +74,11 @@ public class ProxyDispatcher extends AbstractController {
         HttpURLConnection wmsBackendCon = (HttpURLConnection) url
                 .openConnection();
 
-        if (wmsBackendCon.getContentEncoding() != null) {
-            response.setCharacterEncoding(wmsBackendCon.getContentEncoding());
+        String encoding = wmsBackendCon.getContentEncoding();
+        if (encoding == null || "ISO-8859-1".equals(encoding)) {
+            encoding = "UTF-8";
         }
+        response.setCharacterEncoding(encoding);
 
         response.setContentType(wmsBackendCon.getContentType());
 
