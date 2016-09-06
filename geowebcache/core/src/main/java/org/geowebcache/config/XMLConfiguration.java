@@ -463,17 +463,18 @@ public class XMLConfiguration implements Configuration, InitializingBean {
             throw (IOException) new IOException(e.getMessage()).initCause(e);
         }
 
+        /*
         File backupFile = null;
         try {
             backupFile = backUpConfig(xmlFile);
         } catch (Exception e) {
             log.warn("Error creating back up of configuration file " + configFileName, e);
-        }
+        }*/
         persistToFile(xmlFile);
-        
+        /*
         if(backupFile != null) {
             deleteBackupConfig(backupFile);
-        }
+        }*/
     }
 
     private synchronized File backUpConfig(final File xmlFile) throws IOException {
