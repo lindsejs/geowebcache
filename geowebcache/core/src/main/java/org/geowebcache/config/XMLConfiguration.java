@@ -29,16 +29,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -121,7 +112,6 @@ public class XMLConfiguration implements Configuration, InitializingBean {
 
     /**
      * Web app context, used to look up {@link XMLConfigurationProvider}s. Will be null if used the
-     * {@link #XMLConfiguration(File)} constructor
      */
     private final WebApplicationContext context;
 
@@ -213,7 +203,6 @@ public class XMLConfiguration implements Configuration, InitializingBean {
      * 
      * @param appCtx
      *            use to lookup {@link XMLConfigurationProvider} extenions, may be {@code null}
-     * @param defaultStorage
      * @throws ConfigurationException
      */
     public XMLConfiguration(final ApplicationContextProvider appCtx,
@@ -471,10 +460,10 @@ public class XMLConfiguration implements Configuration, InitializingBean {
             log.warn("Error creating back up of configuration file " + configFileName, e);
         }
         persistToFile(xmlFile);
-        /*
+
         if(backupFile != null) {
             deleteBackupConfig(backupFile);
-        }*/
+        }
     }
 
     private synchronized File backUpConfig(final File xmlFile) throws IOException {
@@ -491,11 +480,36 @@ public class XMLConfiguration implements Configuration, InitializingBean {
     }
     
     private synchronized void deleteBackupConfig(File backupFile) {
-        log.debug("Delete config file " + backupFile.getName());
-        FileUtils.deleteQuietly(backupFile);
-        
-        if(backupFile.exists()) {
-            log.error("Cannot delete backup file config: " + backupFile.getName());
+        int count = 5;
+        File tmp = backupFile.getParentFile();
+        if(tmp != null && tmp.exists() && tmp.isDirectory()) {
+            FilenameFilter filter = new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.toLowerCase().endsWith(".bak");
+                }
+            };
+            File[] list = tmp.listFiles(filter);
+            LinkedList<String> llist = new LinkedList<String>();
+
+            for (File f : list) {
+                llist.add(f.getAbsolutePath());
+            }
+
+            Collections.sort(llist);
+
+            if (llist.size() > count) {
+                int k = llist.size() - count;
+                for (int i = 0; i < k; i++) {
+                    File bf = new File(llist.get(i));
+                    log.debug("Delete config file " + bf.getName());
+                    FileUtils.deleteQuietly(bf);
+
+                    if (bf.exists()) {
+                        log.error("Cannot delete backup file config: " + bf.getName());
+                    }
+                }
+            }
         }
     }
 
@@ -756,8 +770,7 @@ public class XMLConfiguration implements Configuration, InitializingBean {
 
     /**
      * Method responsible for loading xml configuration file and parsing it into a W3C DOM Document
-     * 
-     * @param file
+     *
      *            the file contaning the layer configurations
      * @return W3C DOM Document
      */
