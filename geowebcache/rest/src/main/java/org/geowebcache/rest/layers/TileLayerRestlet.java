@@ -17,15 +17,19 @@
  */
 package org.geowebcache.rest.layers;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.converters.ConversionException;
+import com.thoughtworks.xstream.converters.Converter;
+import com.thoughtworks.xstream.converters.MarshallingContext;
+import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.HierarchicalStreamDriver;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import com.thoughtworks.xstream.io.copy.HierarchicalStreamCopier;
+import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
+import com.thoughtworks.xstream.io.json.JsonHierarchicalStreamDriver;
+import com.thoughtworks.xstream.io.xml.DomDriver;
+import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
 import org.geowebcache.GeoWebCacheDispatcher;
 import org.geowebcache.GeoWebCacheException;
 import org.geowebcache.config.Configuration;
@@ -44,29 +48,19 @@ import org.geowebcache.util.ServletUtils;
 import org.geowebcache.util.URLMangler;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.restlet.data.CharacterSet;
-import org.restlet.data.MediaType;
-import org.restlet.data.Method;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.data.Status;
+import org.restlet.data.*;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.StringRepresentation;
 
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.converters.ConversionException;
-import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.io.HierarchicalStreamDriver;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-import com.thoughtworks.xstream.io.copy.HierarchicalStreamCopier;
-import com.thoughtworks.xstream.io.json.JettisonMappedXmlDriver;
-import com.thoughtworks.xstream.io.json.JsonHierarchicalStreamDriver;
-import com.thoughtworks.xstream.io.xml.DomDriver;
-import com.thoughtworks.xstream.io.xml.PrettyPrintWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * This is the TileLayer resource class required by the REST interface

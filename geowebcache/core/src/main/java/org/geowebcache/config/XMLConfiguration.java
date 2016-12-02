@@ -16,35 +16,8 @@
  */
 package org.geowebcache.config;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.*;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
-import javax.xml.transform.dom.DOMResult;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
-
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.DomReader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
@@ -53,12 +26,7 @@ import org.geowebcache.GeoWebCacheException;
 import org.geowebcache.GeoWebCacheExtensions;
 import org.geowebcache.config.ContextualConfigurationProvider.Context;
 import org.geowebcache.config.meta.ServiceInformation;
-import org.geowebcache.filter.parameters.CaseNormalizer;
-import org.geowebcache.filter.parameters.FloatParameterFilter;
-import org.geowebcache.filter.parameters.IntegerParameterFilter;
-import org.geowebcache.filter.parameters.ParameterFilter;
-import org.geowebcache.filter.parameters.RegexParameterFilter;
-import org.geowebcache.filter.parameters.StringParameterFilter;
+import org.geowebcache.filter.parameters.*;
 import org.geowebcache.filter.request.CircularExtentFilter;
 import org.geowebcache.filter.request.FileRasterFilter;
 import org.geowebcache.filter.request.WMSRasterFilter;
@@ -88,12 +56,20 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.xml.DomReader;
-import com.thoughtworks.xstream.security.NoPermission;
-import com.thoughtworks.xstream.security.NoTypePermission;
-import com.thoughtworks.xstream.security.PrimitiveTypePermission;
-import com.thoughtworks.xstream.security.WildcardTypePermission;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * XMLConfiguration class responsible for reading/writing layer configurations to and from XML file
@@ -725,7 +701,17 @@ public class XMLConfiguration implements Configuration, InitializingBean {
         removed = gwcConfig.getLayers().remove(tileLayer);
         if (removed) {
             updateLayers();
-            
+
+            // remove dir
+            File dir = new File(this.configDirectory, layerName.replaceAll(":", "_"));
+            if(dir != null && dir.exists() && dir.isDirectory()) {
+                log.debug("layer removed, try to remove dir: " + dir.getAbsolutePath());
+                removed = org.geowebcache.util.FileUtils.rmFileCacheDir(dir, null);
+            }
+
+            if(!removed) {
+                log.error("cannot remove dir: " + dir.getAbsolutePath());
+            }
         }
         return removed;
     }

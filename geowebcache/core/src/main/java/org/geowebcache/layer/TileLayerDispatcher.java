@@ -16,12 +16,7 @@
  */
 package org.geowebcache.layer;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.base.Preconditions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.geowebcache.GeoWebCacheException;
@@ -37,7 +32,11 @@ import org.geowebcache.util.CompositeIterable;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.util.Assert;
 
-import com.google.common.base.Preconditions;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Serves tile layers from the {@link Configuration}s available in the application context.
