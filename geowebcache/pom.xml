@@ -580,6 +580,7 @@
         <configuration>
           <prefix>build</prefix>
           <failOnNoGitDirectory>false</failOnNoGitDirectory>
+          <useNativeGit>true</useNativeGit>
           <skipPoms>false</skipPoms>
         </configuration>
       </plugin>
