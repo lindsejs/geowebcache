@@ -582,6 +582,8 @@
           <failOnNoGitDirectory>false</failOnNoGitDirectory>
           <useNativeGit>true</useNativeGit>
           <skipPoms>false</skipPoms>
+          <verbose>false></verbose>
+          <runOnlyOnce>true</runOnlyOnce>
         </configuration>
       </plugin>
 
